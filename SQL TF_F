@@ -1,0 +1,83 @@
+/**
+    * return select "Column1","Column2" from "table";
+*/
+tb_map = select "GLAccountSAP", "CompanyCode", "MovementType", "DocumentType", "GLAccountTargetik", "DataType" 
+                from "YY1_MAPGLSAPTOTAGETIK"
+                where "DataType" = 'F';   -- solo i dati di flusso
+                
+tb_1_accesso = select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."GLAccount",
+                        a."BusinessTransactionType", a."AccountingDocumentType", a."AmountInCompanyCodeCurrency", 
+                        a."PartnerCompany", b."GLAccountTargetik", b."DataType"
+                from "VR_GLACCOUNTSAP_01"( LEDGER=>:LEDGER, PERIOD=>:PERIOD, FISCYEAR=>:FISCYEAR ) as a
+                left join :tb_map as b
+                on a."GLAccount" = b."GLAccountSAP"
+                and a."CompanyCode" = b."CompanyCode"
+                and  a."AccountingDocumentType" = b."DocumentType"
+                and b."MovementType" = '#';
+                
+tb_2_accesso = select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."GLAccount",
+                        a."BusinessTransactionType", a."AccountingDocumentType", a."AmountInCompanyCodeCurrency", 
+                        a."PartnerCompany", b."GLAccountTargetik", b."DataType"
+                from :tb_1_accesso as a
+                left join :tb_map as b
+                on a."GLAccount" = b."GLAccountSAP"
+                and a."CompanyCode" = b."CompanyCode"
+                and b."DocumentType" = '#'
+                and a."BusinessTransactionType" = b."MovementType"
+                and a."GLAccountTargetik" is null;
+                
+tb_3_accesso = select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."GLAccount",
+                        a."BusinessTransactionType", a."AccountingDocumentType", a."AmountInCompanyCodeCurrency", 
+                        a."PartnerCompany", b."GLAccountTargetik", b."DataType"
+                from :tb_2_accesso as a
+                left join :tb_map as b
+                on a."GLAccount" = b."GLAccountSAP"
+                and b."CompanyCode" = '#'
+                and a."AccountingDocumentType" = b."DocumentType"
+                and b."MovementType" = '#'
+                and a."GLAccountTargetik" is null;
+
+tb_4_accesso = select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."GLAccount",
+                        a."BusinessTransactionType", a."AccountingDocumentType", a."AmountInCompanyCodeCurrency", 
+                        a."PartnerCompany", coalesce( b."GLAccountTargetik", 'NO_MAPPING' ) as "GLAccountTargetik", 
+                        b."DataType"
+                from :tb_3_accesso as a
+                left join :tb_map as b
+                on a."GLAccount" = b."GLAccountSAP"
+                and b."CompanyCode" = '#'
+                and b."DocumentType" = '#'
+                and a."BusinessTransactionType" = b."MovementType"
+                and a."GLAccountTargetik" is null;                
+                                
+tb_union = select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                    a."GLAccountTargetik", a."DataType", sum( a."AmountInCompanyCodeCurrency" ) as "AmountInCompanyCodeCurrency"
+                from :tb_1_accesso as a
+                where "GLAccountTargetik" is not null
+                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                    a."GLAccountTargetik", a."DataType"
+                union all
+                select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                    a."GLAccountTargetik", a."DataType", sum( a."AmountInCompanyCodeCurrency" ) as "AmountInCompanyCodeCurrency"
+                from :tb_2_accesso as a
+                where "GLAccountTargetik" is not null
+                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                    a."GLAccountTargetik", a."DataType"
+                UNION ALL
+                select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                    a."GLAccountTargetik", a."DataType", sum( a."AmountInCompanyCodeCurrency" ) as "AmountInCompanyCodeCurrency"
+                from :tb_3_accesso as a
+                where "GLAccountTargetik" is not null
+                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                    a."GLAccountTargetik", a."DataType"
+                UNION ALL
+                select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                    a."GLAccountTargetik", a."DataType", sum( a."AmountInCompanyCodeCurrency" ) as "AmountInCompanyCodeCurrency"
+                from :tb_4_accesso as a
+                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                    a."GLAccountTargetik", a."DataType";
+                
+
+return 
+select "SourceLedger", "CompanyCode", "FiscalYear", "Period", "PartnerCompany", 
+                "GLAccountTargetik", "DataType", "AmountInCompanyCodeCurrency"
+                from :tb_union;
