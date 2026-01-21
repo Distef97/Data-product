@@ -1,4 +1,9 @@
+FiscalPeriod != '000'
+#################################################################################
+
 SourceLedger = :LEDGER and Period = :PERIOD and FiscalYear = :FISCYEAR 
 
+OR
+SourceLedger = :LEDGER and Period <= :PERIOD and FiscalYear = :FISCYEAR 
 ###########################################################################
 
