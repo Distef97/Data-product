@@ -49,31 +49,31 @@ tb_4_accesso = select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Peri
                 and a."BusinessTransactionType" = b."MovementType"
                 and a."GLAccountTargetik" is null;                
                                 
-tb_union = select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+tb_union = select a."SourceLedger", a."CompanyCode", a."FiscalYear", :PERIOD as "Period", a."PartnerCompany", 
                     a."GLAccountTargetik", a."DataType", sum( a."AmountInCompanyCodeCurrency" ) as "AmountInCompanyCodeCurrency"
                 from :tb_1_accesso as a
                 where "GLAccountTargetik" is not null
-                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", :PERIOD, a."PartnerCompany", 
                     a."GLAccountTargetik", a."DataType"
                 union all
-                select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                select a."SourceLedger", a."CompanyCode", a."FiscalYear", :PERIOD as "Period", a."PartnerCompany", 
                     a."GLAccountTargetik", a."DataType", sum( a."AmountInCompanyCodeCurrency" ) as "AmountInCompanyCodeCurrency"
                 from :tb_2_accesso as a
                 where "GLAccountTargetik" is not null
-                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", :PERIOD, a."PartnerCompany", 
                     a."GLAccountTargetik", a."DataType"
                 UNION ALL
-                select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                select a."SourceLedger", a."CompanyCode", a."FiscalYear", :PERIOD as "Period", a."PartnerCompany", 
                     a."GLAccountTargetik", a."DataType", sum( a."AmountInCompanyCodeCurrency" ) as "AmountInCompanyCodeCurrency"
                 from :tb_3_accesso as a
                 where "GLAccountTargetik" is not null
-                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", :PERIOD, a."PartnerCompany", 
                     a."GLAccountTargetik", a."DataType"
                 UNION ALL
-                select a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                select a."SourceLedger", a."CompanyCode", a."FiscalYear", :PERIOD as "Period", a."PartnerCompany", 
                     a."GLAccountTargetik", a."DataType", sum( a."AmountInCompanyCodeCurrency" ) as "AmountInCompanyCodeCurrency"
                 from :tb_4_accesso as a
-                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", a."Period", a."PartnerCompany", 
+                GROUP BY a."SourceLedger", a."CompanyCode", a."FiscalYear", :PERIOD, a."PartnerCompany", 
                     a."GLAccountTargetik", a."DataType";
                 
 
